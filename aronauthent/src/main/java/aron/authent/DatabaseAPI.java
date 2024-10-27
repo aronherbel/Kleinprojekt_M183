@@ -8,7 +8,7 @@ import java.sql.Statement;
 
 public class DatabaseAPI {
     
-    protected final String url = "jdbc:sqlite:" + System.getProperty("user.dir") + "/data/db.sqlite";
+    protected final String url = "jdbc:sqlite:" + System.getProperty("user.dir") + "/data/aronauthentDB.db";
  
     public void createTable(String tableName, String fields) {  
         try (var conn = DriverManager.getConnection(url)) {

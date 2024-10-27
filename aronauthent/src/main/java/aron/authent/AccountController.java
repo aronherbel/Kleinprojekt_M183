@@ -53,8 +53,8 @@ public class AccountController {
     }   
 
     @FXML
-    private void onSignUp(ActionEvent event) throws Exception  {
-        // verify name, password and confirmed password
+    private void onSignUp(ActionEvent event) throws Exception  {    
+
         String name = tfSignUpEmail.getText();
         if (name.isEmpty()) {
             lbSignUpMessage.setText("Type in email");
