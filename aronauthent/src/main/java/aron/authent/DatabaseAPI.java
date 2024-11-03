@@ -19,15 +19,16 @@ public class DatabaseAPI {
                 var sql = "SELECT name FROM sqlite_master WHERE type='table' AND name='" + tableName + "';";
                 var stmt = conn.createStatement();
                 var rs = stmt.executeQuery(sql);
-                try {
-                    var exS = rs.getString(1);       
-                    System.out.println("Table " + exS + " already exists.");        
-                }
-                catch (SQLException e) {
+                
+                if (rs.next()) {  // `rs.next()` returns true if there's data in the result set
+                    var exS = rs.getString(1);
+                    System.out.println("Table " + exS + " already exists.");
+                } else {
                     sql = "CREATE TABLE IF NOT EXISTS " + tableName + "(\n " + fields + ");";
                     stmt.executeUpdate(sql);
                     System.out.println("A new table " + tableName + " has been created.");
                 }
+            
                 stmt.close();
                 conn.close();
             }
@@ -55,8 +56,31 @@ public class DatabaseAPI {
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         } 
+
     }
- 
+
+    public int insertAndGetId(String tableName, String fields, String values) {
+        int generatedId = -1; 
+        String sql = "INSERT INTO " + tableName + " (" + fields + ") VALUES (" + values + ");";
+        
+        try (Connection conn = DriverManager.getConnection(url);
+             Statement stmt = conn.createStatement()) {
+            // Führe das Insert-Statement aus
+            stmt.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS);
+            System.out.println("salt inserted");
+            
+            // Hole die generierte ID
+            ResultSet rs = stmt.getGeneratedKeys();
+            if (rs.next()) {
+                generatedId = rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        
+        return generatedId; 
+    }
+    
     public String getValue(String tableName, String keyName, String keyValue, String fieldName) {
         try (Connection conn = DriverManager.getConnection(url)) {
             if (conn != null) {            
@@ -88,13 +112,13 @@ public class DatabaseAPI {
                 var sql = "SELECT * FROM " + tableName + " WHERE " + keyName + " == " + keyValue; 
 
                 ResultSet rs = stmt.executeQuery(sql);
-                try {
+                if(rs.next()) {
                     String exS = rs.getString(keyName);       
                     System.out.println("Key value " + exS + " from table " + tableName + " exists.");
                     stmt.close();
                     conn.close();
                     return true;
-                } catch (SQLException e) {
+                } else {
                     System.out.println("Key value " + keyValue + " from table " + tableName + "  not exists.");
                     stmt.close();
                 }
@@ -105,4 +129,6 @@ public class DatabaseAPI {
         }
         return false;
     }
+
+   
 }

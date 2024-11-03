@@ -49,7 +49,9 @@ public class AccountController {
     private void initialize() throws Exception {
         // create and init DB-Tables
         account = new Account();
-        //account.initAccount();
+        account.initAccount();
+    
+
     }   
 
     @FXML
@@ -72,11 +74,17 @@ public class AccountController {
             return;
         }
 
+        if (!isPasswordStrong(pw)) {
+            lbSignUpMessage.setText("Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.");
+            return;
+        }
+
         // verify account 
         if (account.verifyAccount(name)) {
             lbSignUpMessage.setText("Email " + name + " has already an account");
             return;
         }
+
         
         // add new account
         account.addAccount(name, pw);
@@ -131,5 +139,32 @@ public class AccountController {
         pfSignUpPassword.setText("");
         pfSignUpConfirmPassword.setText("");
         lbSignUpMessage.setText("Create Account");
+    }
+
+    private boolean isPasswordStrong(String password) {
+        // Überprüfen der Länge
+        if (password.length() < 8) {
+            return false;
+        }
+    
+        // Überprüfen auf Großbuchstaben, Kleinbuchstaben, Zahlen und Sonderzeichen
+        boolean hasUpperCase = false;
+        boolean hasLowerCase = false;
+        boolean hasDigit = false;
+        boolean hasSpecialChar = false;
+    
+        for (char c : password.toCharArray()) {
+            if (Character.isUpperCase(c)) {
+                hasUpperCase = true;
+            } else if (Character.isLowerCase(c)) {
+                hasLowerCase = true;
+            } else if (Character.isDigit(c)) {
+                hasDigit = true;
+            } else if (!Character.isLetterOrDigit(c)) {
+                hasSpecialChar = true;
+            }
+        }
+    
+        return hasUpperCase && hasLowerCase && hasDigit && hasSpecialChar;
     }
 }
