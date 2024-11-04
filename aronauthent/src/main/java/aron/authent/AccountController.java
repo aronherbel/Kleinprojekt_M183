@@ -7,6 +7,13 @@ import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
+import com.google.zxing.WriterException;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import java.io.File;
+import java.io.IOException;
+import twofactor.Utils;
+
 
 public class AccountController {
 
@@ -44,14 +51,28 @@ public class AccountController {
 
     @FXML
     private TextField tfUsername;
- 
+
+    
+    @FXML
+    private ImageView ivQRCode;
+
+    @FXML
+    private Label lb2FAMessage;
+
+    @FXML
+    private TextField tf2FACode;
+
+    private String secretKey;
+
+
+
+
+    
     @FXML
     private void initialize() throws Exception {
         // create and init DB-Tables
         account = new Account();
         account.initAccount();
-    
-
     }   
 
     @FXML
@@ -101,14 +122,30 @@ public class AccountController {
     }
 
     @FXML
-    private void onLogin(ActionEvent event) {
+    private void onLogin(ActionEvent event) throws Exception {
         String name = tfUsername.getText();
         String pw = pfLoginPassword.getText();
                         
         if (account.verifyPassword(name, pw)) {
-            tabPane.getTabs().get(0).setDisable(true);
-            tabPane.getTabs().get(1).setDisable(true);
+            
+            secretKey = Utils.generateSecretKey();
+            String barCodeUrl = Utils.getGoogleAuthenticatorBarCode(secretKey, name, name + "AG");
+            System.out.println(barCodeUrl);
+
+            try {
+                String qrCodePath = "path_to_save_qr_code.png"; // Pfad, wo der QR-Code gespeichert werden soll
+                Utils.createQRCode(barCodeUrl, qrCodePath, 200, 200); // QR-Code erstellen
+                Image qrImage = new Image(new File(qrCodePath).toURI().toString()); // Bild laden
+                ivQRCode.setImage(qrImage); // Bild im ImageView anzeigen
+                
+            } catch (WriterException | IOException e) {
+                e.printStackTrace();
+            }
+
+            tabPane.getTabs().get(0).setDisable(false);
+            tabPane.getTabs().get(1).setDisable(false);
             tabPane.getTabs().get(2).setDisable(false);
+            resetLogin();
             tabPane.getSelectionModel().select(2);
         } else {
             lbLoginMessage.setText("'Email' or 'Password' are wrong");
@@ -121,12 +158,52 @@ public class AccountController {
         // set tabs
         tabPane.getTabs().get(0).setDisable(false);
         tabPane.getTabs().get(1).setDisable(false);
-        tabPane.getTabs().get(2).setDisable(true);
+        tabPane.getTabs().get(2).setDisable(false);
+        tabPane.getTabs().get(3).setDisable(true);
         
         // reset login and select tab 'Log in'
         resetLogin();   
         tabPane.getSelectionModel().select(1);      
     }
+
+    @FXML
+    public void onVerify2FA(ActionEvent event) {
+        String code = tf2FACode.getText();
+        
+        // Überprüfen des eingegebenen Codes
+        if (isValidCode(code)) {
+            // Erfolgreiche Verifizierung, weiter zur nächsten Ansicht
+            tabPane.getTabs().get(0).setDisable(true);
+            tabPane.getTabs().get(1).setDisable(true);
+            tabPane.getTabs().get(2).setDisable(true);
+            tabPane.getTabs().get(3).setDisable(false);
+            lb2FAMessage.setText("Code erfolgreich verifiziert!");
+            tabPane.getSelectionModel().select(3); // Wechselt zur nächsten Tab
+        } else {
+            // Fehlerhafte Eingabe
+            lb2FAMessage.setText("Ungültiger Code. Bitte erneut eingeben.");
+            tf2FACode.clear(); // Eingabefeld zurücksetzen
+        }
+    }
+
+
+    private boolean isValidCode(String code) {
+        try {
+            // Erzeuge den erwarteten TOTP-Code anhand des gespeicherten Secret Keys
+            String expectedCode = Utils.getTOTPCode(secretKey);
+    
+            // Vergleiche den eingegebenen Code mit dem erwarteten Code
+            return code.equals(expectedCode);
+        } catch (NumberFormatException e) {
+            // Der Code ist nicht numerisch, daher ungültig
+            return false;
+        } catch (Exception e) {
+            // Fehler bei der Code-Generierung, Rückgabewert ungültig
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     
     private void resetLogin() {
         tfUsername.setText("");
